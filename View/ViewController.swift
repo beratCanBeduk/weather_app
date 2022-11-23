@@ -24,7 +24,7 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
     
     let coreLocation  = CLLocationManager()
     var weatherManager = WeatherManager()
-    
+    var currentAddres = ""
     
 
     
@@ -33,8 +33,8 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         coreLocation.delegate = self
-        coreLocation.requestWhenInUseAuthorization()
-        coreLocation.requestLocation()
+        checkLocationPermission()
+      
         forecastTableView.delegate = self
         forecastTableView.dataSource = self
         weatherManager.delegate = self
@@ -67,7 +67,7 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
         
         DispatchQueue.main.async {
            
-            self.cityNameLabel.text = weather.name
+            
             self.tempratureLabel.text = "\(self.weatherManager.getIntegerPartOfDouble(temp: weather.temp))°"
             self.weatherIconImage.load(url: URL(string: "https://openweathermap.org/img/wn/\(weather.conditionName)@2x.png")!)
             self.weatherManager.dailyList = weather.daily
@@ -77,23 +77,78 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
         }
        
     }
+    
+    func checkLocationPermission(){
+        switch coreLocation.authorizationStatus{
+            
+        case .notDetermined:
+            coreLocation.requestWhenInUseAuthorization()
+        case .restricted:
+           showAlert(withTitle: "Error Occured", message: "Location Permission Is Restricted")
+        case .denied:
+            let cancel = UIAlertAction(title: "Cancel", style: .cancel)
+            let settingAction = UIAlertAction(title: "Settings", style: .default){(action) in
+                if let url = URL(string: UIApplication.openSettingsURLString){
+                    UIApplication.shared.open(url,options: [:],completionHandler: nil)
+                }
+            }
+            showAlert(withTitle: "Error Occured", message: "Location Permission Is Denied , Please Allow On Settings",actions: [settingAction,cancel])
+        case .authorizedAlways , .authorizedWhenInUse:
+            coreLocation.startUpdatingLocation()
+        @unknown default:
+            showAlert(withTitle: "Error", message: "Something went wrong")
+        }
+    }
+    
+    
+    func showAlert(withTitle title : String?,message :String? , actions : [UIAlertAction] = [ UIAlertAction(title: "Ok", style: .default,handler: nil)]){
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        actions.forEach({alert.addAction($0)})
+        present(alert,animated: true,completion: nil)
+       
+    }
+    
+    func getAddressFromLocation(withLocation location : CLLocation){
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(location) { placemarks, error in
+            if let error = error {
+                self.showAlert(withTitle: "Error", message: error.localizedDescription)
+            }
+            else if let address = placemarks{
+                for i in address{
+                    self.currentAddres = i.administrativeArea ?? "İstanbul"
+                    self.cityNameLabel.text = self.currentAddres                }
+            }
+            
+            
+        }
+    }
 
 }
 
 extension ViewController : CLLocationManagerDelegate {
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        checkLocationPermission()
+    }
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
     
-        if let location = locations.last{
+        if let location = locations.first{
+            
             let lat = location.coordinate.latitude
             let long = location.coordinate.longitude
+            coreLocation.stopUpdatingLocation()
+            getAddressFromLocation(withLocation: location)
             weatherManager.fetchWeather(lat: lat, lon: long)
         }
         
     }
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-       print(error)
+        showAlert(withTitle: "Error", message: error.localizedDescription)
     }
 }
+
+
 
 
  
