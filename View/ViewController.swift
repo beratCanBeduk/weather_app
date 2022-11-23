@@ -9,25 +9,22 @@ import UIKit
 import CoreLocation
 
 class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSource,IWeather{
- 
-    
-    
-    
     
     
 
+    
+    
+   // UI components are defined
     @IBOutlet weak var forecastTableView: UITableView!
     @IBOutlet weak var cityNameLabel: UILabel!
     @IBOutlet weak var weatherIconImage: UIImageView!
     @IBOutlet weak var tempratureLabel: UILabel!
     
-    
+    //Necessary initalize implemantations are set
     let coreLocation  = CLLocationManager()
-    var weatherManager = WeatherManager()
-    var currentAddres = ""
-    
-
-    
+    var weatherManager = WeatherManager.sharedInstance
+   
+ 
    
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -38,14 +35,14 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
         forecastTableView.delegate = self
         forecastTableView.dataSource = self
         weatherManager.delegate = self
-        
+       
        
     }
     
    
     
     
-    
+    // table view functions are used accordingly UI components
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return weatherManager.dailyList.count
     }
@@ -62,7 +59,7 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
        
         return cell
     }
-
+   // delegate method from weather manager is used in main thread
     func didUpdataWeather(weather: WeatherModel) {
         
         DispatchQueue.main.async {
@@ -78,6 +75,9 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
        
     }
     
+    // Comparing all of the possibilities to catch user permission when the weather scene is opened
+    
+    // if user deny location permission there is an alert and direct route to settings
     func checkLocationPermission(){
         switch coreLocation.authorizationStatus{
             
@@ -108,6 +108,8 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
        
     }
     
+    
+    // Getting addres from CLLocation
     func getAddressFromLocation(withLocation location : CLLocation){
         let geocoder = CLGeocoder()
         geocoder.reverseGeocodeLocation(location) { placemarks, error in
@@ -115,9 +117,10 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
                 self.showAlert(withTitle: "Error", message: error.localizedDescription)
             }
             else if let address = placemarks{
-                for i in address{
-                    self.currentAddres = i.administrativeArea ?? "İstanbul"
-                    self.cityNameLabel.text = self.currentAddres                }
+                for element in address{
+                    self.weatherManager.currentAddres = element.administrativeArea ?? "İstanbul"
+                    self.weatherManager.countryCode = element.isoCountryCode ?? "Tr"
+                    self.cityNameLabel.text = "\(self.weatherManager.currentAddres),\(self.weatherManager.countryCode)"             }
             }
             
             
@@ -126,27 +129,8 @@ class ViewController: UIViewController , UITableViewDelegate,UITableViewDataSour
 
 }
 
-extension ViewController : CLLocationManagerDelegate {
-    
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        checkLocationPermission()
-    }
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-    
-        if let location = locations.first{
-            
-            let lat = location.coordinate.latitude
-            let long = location.coordinate.longitude
-            coreLocation.stopUpdatingLocation()
-            getAddressFromLocation(withLocation: location)
-            weatherManager.fetchWeather(lat: lat, lon: long)
-        }
-        
-    }
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        showAlert(withTitle: "Error", message: error.localizedDescription)
-    }
-}
+
+
 
 
 

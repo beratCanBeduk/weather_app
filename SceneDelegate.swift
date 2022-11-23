@@ -6,11 +6,13 @@
 //
 
 import UIKit
-
+var myApikeyFromSceneDelegate : String?
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
-
+    let firstViewController : FirstViewController = FirstViewController()
+    var weatherManager = WeatherManager.sharedInstance
+    
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
@@ -49,7 +51,34 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Save changes in the application's managed object context when the application transitions to the background.
         (UIApplication.shared.delegate as? AppDelegate)?.saveContext()
     }
-
+    
+    
+    // Set up for deeplinking and reaching the api key from link
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        if let url = URLContexts.first?.url{
+            print(url)
+            let urlString = url.absoluteString
+            let component = urlString.components(separatedBy: "=")
+            
+            if component.count > 1 , let apikey = component.last{
+              /*  if(apikey == "8ddadecc7ae4f56fee73b2b405a63659"){
+                    NavigateToViewController(apikey: apikey)
+                }*/
+                print("my api key : \(apikey) ")
+                myApikeyFromSceneDelegate = apikey 
+                NavigateToViewController()
+            }
+        }
+    }
+    // Navigate directly to the weather scene with apikey
+    func NavigateToViewController(){
+        let storyboard = UIStoryboard.init(name: "Main", bundle: nil)
+        guard let targetVC = storyboard.instantiateViewController(withIdentifier: "secondViewController") as? ViewController else{return}
+        let navVc = self.window?.rootViewController as? UINavigationController
+    
+        navVc?.pushViewController(targetVC, animated: true)
+        
+    }
 
 }
 

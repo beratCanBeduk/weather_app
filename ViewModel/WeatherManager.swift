@@ -17,23 +17,32 @@ import Foundation
 import CoreLocation
 import UIKit
 
-
+// Protocol to share weather data
 protocol IWeather {
-  
-    func didUpdataWeather(weather : WeatherModel)
+
+        func didUpdataWeather(weather : WeatherModel)
 }
 
-struct WeatherManager{
-    
+
+
+struct WeatherManager {
+    static let sharedInstance = WeatherManager()
+    private init() {}
     var delegate : IWeather?
     var dailyList : [Daily] = []
     var iconId : String = ""
+    var myDefaultApikey = "8ddadecc7ae4f56fee73b2b405a63659"
+    var currentAddres = ""
+    var countryCode = ""
+
     
-    let wUrl = "https://api.openweathermap.org/data/2.5/onecall?appid=8ddadecc7ae4f56fee73b2b405a63659&units=metric"
+    let wUrl = "https://api.openweathermap.org/data/2.5/onecall?units=metric"
     
+    
+    // fetch weather from api with using url and performRequest method
     func fetchWeather(lat : CLLocationDegrees , lon : CLLocationDegrees){
-        
-        let urlString = "\(wUrl)&lat=\(lat)&lon=\(lon)"
+      
+        let urlString = "\(wUrl)&appid=\(myApikeyFromSceneDelegate ?? myDefaultApikey)&lat=\(lat)&lon=\(lon)"
         print(urlString)
         performRequest(urlString: urlString)
     }
@@ -53,6 +62,7 @@ struct WeatherManager{
                 
                 if let safeData = data {
                     if let myWeather = self.parseJson(weatherData: safeData){
+                        // delegation to use func in VC
                         self.delegate?.didUpdataWeather(weather: myWeather)
                       
                     }
@@ -64,13 +74,13 @@ struct WeatherManager{
         
 
     }
-    
+    // parsing json data to model
     func parseJson(weatherData : Data) -> WeatherModel? {
         
         let decoder = JSONDecoder()
         do{
             //decode data from weather data
-            let decodedData = try decoder.decode(WeatherModels.self, from: weatherData)
+            let decodedData = try decoder.decode(WeatherData.self, from: weatherData)
             
             //let them declare as a variable
             let timezone = decodedData.timezone
@@ -94,7 +104,7 @@ struct WeatherManager{
         
         
     }
-    
+   // format date to string to use in VC
     func dateConverter(date : Double?) -> String {
         var dayName = ""
         if let day = date {
@@ -108,6 +118,7 @@ struct WeatherManager{
         
     }
     
+    // Taking only integer part from double
     func getIntegerPartOfDouble(temp : Double?) -> Int {
         var integerTemp : Int = 0
         
@@ -125,8 +136,12 @@ struct WeatherManager{
                     return "11d"
                 case 300...321:
                     return "09d"
-                case 500...531:
-                    return "09d"
+                case 500...504:
+                    return "10d"
+                case 511:
+                   return "13d"
+               case 520...531:
+                   return "09d"
                 case 600...622:
                     return "13d"
                 case 701...781:

@@ -7,6 +7,7 @@
 
 import Foundation
 
+// WeatherModel is created for manipulate data which will be shown in VC
 
 struct WeatherModel {
     let name : String
